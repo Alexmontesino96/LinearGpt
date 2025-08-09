@@ -1,0 +1,61 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #fff;
+  color: #000;
+  font-family: sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  font-size: 12px;
+  color: #555;
+}
+
+.voice-container {
+  border: 2px solid #000;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+
+.voice-container.bubble {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+}
+
+.voice-container.card {
+  width: 300px;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.voice-container.bubble.speaking {
+  animation: pulse 0.2s infinite;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.card-grid h3 {
+  margin-top: 0;
+}
+
+.card {
+  border: 1px solid #000;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  background: #fff;
+}

@@ -5,39 +5,59 @@ export default function App() {
   const remoteRef = useRef(null);
   const [renderPayload, setRenderPayload] = useState(null);
   const [speaking, setSpeaking] = useState(false);
+  const [status, setStatus] = useState('connecting');
 
   useEffect(() => {
     async function connect() {
-      const pc = new RTCPeerConnection();
-      const dc = pc.createDataChannel('oai-events');
-      dc.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'render') setRenderPayload(msg.payload);
-      };
+      console.log('Starting WebRTC connection...');
+      try {
+        const pc = new RTCPeerConnection();
+        pc.onconnectionstatechange = () => {
+          console.log('Connection state:', pc.connectionState);
+          setStatus(pc.connectionState);
+        };
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getAudioTracks().forEach((t) => pc.addTrack(t, stream));
-      localRef.current.srcObject = stream;
+        const dc = pc.createDataChannel('oai-events');
+        dc.onopen = () => console.log('Data channel opened');
+        dc.onerror = (err) => console.error('Data channel error', err);
+        dc.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          console.log('Data channel message:', msg.type);
+          if (msg.type === 'render') setRenderPayload(msg.payload);
+        };
 
-      pc.ontrack = (e) => {
-        const rstream = e.streams[0];
-        remoteRef.current.srcObject = rstream;
-        monitorAudio(rstream);
-      };
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Got user media');
+        stream.getAudioTracks().forEach((t) => pc.addTrack(t, stream));
+        localRef.current.srcObject = stream;
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+        pc.ontrack = (e) => {
+          console.log('Received remote track');
+          const rstream = e.streams[0];
+          remoteRef.current.srcObject = rstream;
+          monitorAudio(rstream);
+        };
 
-      const res = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_OAI_KEY}`,
-          'Content-Type': 'application/sdp',
-        },
-        body: offer.sdp,
-      });
-      const answer = { type: 'answer', sdp: await res.text() };
-      await pc.setRemoteDescription(answer);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        console.log('Created local offer');
+
+        const res = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_OAI_KEY}`,
+            'Content-Type': 'application/sdp',
+          },
+          body: offer.sdp,
+        });
+        console.log('Sent offer, awaiting answer...');
+        const answer = { type: 'answer', sdp: await res.text() };
+        await pc.setRemoteDescription(answer);
+        console.log('Remote description set');
+      } catch (err) {
+        console.error('Connection failed', err);
+        setStatus('error');
+      }
     }
     connect();
   }, []);
@@ -70,11 +90,14 @@ export default function App() {
   }
 
   return (
-    <div className={`voice-container ${renderPayload ? 'card' : 'bubble'} ${speaking && !renderPayload ? 'speaking' : ''}`}>
-      <audio ref={localRef} autoPlay muted />
-      <audio ref={remoteRef} autoPlay />
-      {renderPayload && <RenderHost payload={renderPayload} />}
-    </div>
+    <>
+      <div className="status">{status}</div>
+      <div className={`voice-container ${renderPayload ? 'card' : 'bubble'} ${speaking && !renderPayload ? 'speaking' : ''}`}>
+        <audio ref={localRef} autoPlay muted />
+        <audio ref={remoteRef} autoPlay />
+        {renderPayload && <RenderHost payload={renderPayload} />}
+      </div>
+    </>
   );
 }
 

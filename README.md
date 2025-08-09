@@ -16,3 +16,5 @@ Demo frontend for a voice-first chat that morphs between a speaking circle and r
    ```
 
 The interface starts as a black‑and‑white circle that animates with the model’s voice. When the model issues a `render` message with a `ClassCardGrid`, the circle transforms into the cards and retracts once the conversation moves on.
+
+Connection status and activity logs are printed to the browser console, and a small status label shows the current WebRTC state (`connecting`, `connected`, `disconnected`, or `failed`).

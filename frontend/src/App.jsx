@@ -7,17 +7,24 @@ export default function App() {
   const [speaking, setSpeaking] = useState(false);
   const [status, setStatus] = useState('connecting');
 
+  // store references for cleanup
+  const pcRef = useRef(null);
+  const dcRef = useRef(null);
+  const streamRef = useRef(null);
+
   useEffect(() => {
     async function connect() {
       console.log('Starting WebRTC connection...');
       try {
         const pc = new RTCPeerConnection();
+        pcRef.current = pc;
         pc.onconnectionstatechange = () => {
           console.log('Connection state:', pc.connectionState);
           setStatus(pc.connectionState);
         };
 
         const dc = pc.createDataChannel('oai-events');
+        dcRef.current = dc;
         dc.onopen = () => console.log('Data channel opened');
         dc.onerror = (err) => console.error('Data channel error', err);
         dc.onmessage = (e) => {
@@ -27,6 +34,7 @@ export default function App() {
         };
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
         console.log('Got user media');
         stream.getAudioTracks().forEach((t) => pc.addTrack(t, stream));
         localRef.current.srcObject = stream;
@@ -60,6 +68,26 @@ export default function App() {
       }
     }
     connect();
+
+    return () => {
+      if (dcRef.current && dcRef.current.readyState !== 'closed') {
+        try {
+          dcRef.current.close();
+        } catch (e) {
+          console.error('Failed to close data channel', e);
+        }
+      }
+      if (pcRef.current && pcRef.current.connectionState !== 'closed') {
+        try {
+          pcRef.current.close();
+        } catch (e) {
+          console.error('Failed to close peer connection', e);
+        }
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
   }, []);
 
   useEffect(() => {

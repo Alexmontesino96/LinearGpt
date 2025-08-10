@@ -42,10 +42,24 @@ export default function App() {
         await pc.setLocalDescription(offer);
         console.log('Created local offer');
 
-        const res = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
+        const key = import.meta.env.VITE_OAI_KEY;
+        const endpoint = import.meta.env.VITE_OAI_ENDPOINT;
+        const model = import.meta.env.VITE_OAI_MODEL;
+        const missing = [];
+        if (!key) missing.push('VITE_OAI_KEY');
+        if (!endpoint) missing.push('VITE_OAI_ENDPOINT');
+        if (!model) missing.push('VITE_OAI_MODEL');
+        if (missing.length) {
+          const msg = `Missing env vars: ${missing.join(', ')}`;
+          console.error(msg);
+          setStatus(msg);
+          return;
+        }
+
+        const res = await fetch(`${endpoint}?model=${model}`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_OAI_KEY}`,
+            Authorization: `Bearer ${key}`,
             'Content-Type': 'application/sdp',
           },
           body: offer.sdp,

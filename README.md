@@ -9,7 +9,12 @@ Demo frontend for a voice-first chat that morphs between a speaking circle and r
    cd frontend
    npm install
    ```
-2. Provide your OpenAI key as `VITE_OAI_KEY` in an `.env.local` file.
+2. Copy `.env.example` to `.env.local` and set:
+   ```bash
+   VITE_OAI_KEY=<your-openai-key>
+   VITE_OAI_ENDPOINT=https://api.openai.com/v1/realtime
+   VITE_OAI_MODEL=gpt-4o-realtime-preview
+   ```
 3. Start the dev server:
    ```bash
    npm run dev

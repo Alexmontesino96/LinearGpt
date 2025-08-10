@@ -6,6 +6,9 @@ export default function App() {
   const [renderPayload, setRenderPayload] = useState(null);
   const [speaking, setSpeaking] = useState(false);
   const [status, setStatus] = useState('connecting');
+  const audioCtxRef = useRef(null);
+  const rafRef = useRef(null);
+  const cleanupAudioRef = useRef(null);
 
   useEffect(() => {
     async function connect() {
@@ -35,7 +38,8 @@ export default function App() {
           console.log('Received remote track');
           const rstream = e.streams[0];
           remoteRef.current.srcObject = rstream;
-          monitorAudio(rstream);
+          cleanupAudioRef.current?.();
+          cleanupAudioRef.current = monitorAudio(rstream);
         };
 
         const offer = await pc.createOffer();
@@ -60,6 +64,10 @@ export default function App() {
       }
     }
     connect();
+
+    return () => {
+      cleanupAudioRef.current?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -71,6 +79,7 @@ export default function App() {
 
   function monitorAudio(stream) {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtxRef.current = ctx;
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
     src.connect(analyser);
@@ -84,9 +93,14 @@ export default function App() {
       }
       const rms = Math.sqrt(sum / data.length);
       setSpeaking(rms > 0.02);
-      requestAnimationFrame(loop);
+      rafRef.current = requestAnimationFrame(loop);
     };
     loop();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      ctx.close();
+    };
   }
 
   return (

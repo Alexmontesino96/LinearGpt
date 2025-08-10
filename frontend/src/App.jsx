@@ -50,13 +50,16 @@ export default function App() {
           },
           body: offer.sdp,
         });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+        }
         console.log('Sent offer, awaiting answer...');
         const answer = { type: 'answer', sdp: await res.text() };
         await pc.setRemoteDescription(answer);
         console.log('Remote description set');
       } catch (err) {
         console.error('Connection failed', err);
-        setStatus('error');
+        setStatus(`error: ${err.message}`);
       }
     }
     connect();

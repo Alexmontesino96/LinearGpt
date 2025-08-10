@@ -69,6 +69,17 @@ export default function App() {
     }
   }, [renderPayload]);
 
+  async function fetchCards() {
+    try {
+      const res = await fetch('http://localhost:3001/cards');
+      if (!res.ok) throw new Error('failed to load cards');
+      const payload = await res.json();
+      setRenderPayload(payload);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   function monitorAudio(stream) {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const src = ctx.createMediaStreamSource(stream);
@@ -97,6 +108,7 @@ export default function App() {
         <audio ref={remoteRef} autoPlay />
         {renderPayload && <RenderHost payload={renderPayload} />}
       </div>
+      <button onClick={fetchCards}>Cargar tarjetas de prueba</button>
     </>
   );
 }
